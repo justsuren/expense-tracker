@@ -90,7 +90,7 @@ export default async function ExpenseDetailPage({
             </div>
             <div>
               <dt className="text-sm text-gray-500">Submitted by</dt>
-              <dd>{expense.sender_email ?? "-"}</dd>
+              <dd>{expense.sender_name ?? "-"}</dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Submitted at</dt>

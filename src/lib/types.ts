@@ -8,7 +8,8 @@ export interface Expense {
   receipt_url: string | null;
   raw_ai_data: Record<string, unknown> | null;
   submitted_at: string;
-  sender_email: string | null;
+  sender_name: string | null;
+  telegram_chat_id: number | null;
   created_at: string;
 }
 

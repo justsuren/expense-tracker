@@ -37,7 +37,7 @@ export function ExpenseList({ expenses }: { expenses: Expense[] }) {
       <div className="text-center py-12 text-gray-500">
         <p className="text-lg mb-2">No expenses found</p>
         <p className="text-sm">
-          Email a receipt to submit@alignpartners.ai to get started
+          Send a receipt photo to the Telegram bot to get started
         </p>
       </div>
     );

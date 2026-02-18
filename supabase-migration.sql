@@ -18,7 +18,8 @@ CREATE TABLE expenses (
   receipt_url TEXT,
   raw_ai_data JSONB,
   submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  sender_email VARCHAR(255),
+  sender_name VARCHAR(255),
+  telegram_chat_id BIGINT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
