@@ -49,6 +49,7 @@ export function ExpenseList({ expenses }: { expenses: Expense[] }) {
         <thead>
           <tr className="border-b border-gray-200 text-left text-gray-600">
             <th className="pb-2 pr-4 font-medium">Date</th>
+            <th className="pb-2 pr-4 font-medium">Who</th>
             <th className="pb-2 pr-4 font-medium">Merchant</th>
             <th className="pb-2 pr-4 font-medium text-right">Amount</th>
             <th className="pb-2 pr-4 font-medium">Category</th>
@@ -63,6 +64,7 @@ export function ExpenseList({ expenses }: { expenses: Expense[] }) {
               className="border-b border-gray-100 hover:bg-gray-50"
             >
               <td className="py-3 pr-4">{formatDate(expense.date)}</td>
+              <td className="py-3 pr-4">{expense.sender_name ?? "-"}</td>
               <td className="py-3 pr-4 font-medium">
                 <Link
                   href={`/expenses/${expense.id}`}
