@@ -126,11 +126,14 @@ export async function POST(request: Request) {
 
     const supabase = createServiceClient();
 
-    // Upload to storage and parse with AI in parallel
-    const [receiptUrl, parsed] = await Promise.all([
-      uploadReceipt(supabase, file.buffer, file.mimeType),
-      parseReceipt(file.buffer, file.mimeType),
-    ]);
+    // Parse first so we have merchant/date for the filename
+    const parsed = await parseReceipt(file.buffer, file.mimeType);
+
+    const receiptUrl = await uploadReceipt(supabase, file.buffer, file.mimeType, {
+      date: parsed.date,
+      senderName: senderName,
+      merchant: parsed.merchant,
+    });
 
     const status = parsed.confidence >= 0.8 ? "pending" : "needs_review";
 
