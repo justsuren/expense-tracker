@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useCallback } from "react";
 
 export function DateFilter({
   currentStart,
@@ -18,29 +18,18 @@ export function DateFilter({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [start, setStart] = useState(currentStart ?? "");
-  const [end, setEnd] = useState(currentEnd ?? "");
-  const [status, setStatus] = useState(currentStatus ?? "");
-  const [who, setWho] = useState(currentWho ?? "");
 
-  function apply() {
-    const params = new URLSearchParams(searchParams.toString());
-    if (start) params.set("start", start);
-    else params.delete("start");
-    if (end) params.set("end", end);
-    else params.delete("end");
-    if (status) params.set("status", status);
-    else params.delete("status");
-    if (who) params.set("who", who);
-    else params.delete("who");
-    router.push(`/expenses?${params.toString()}`);
-  }
+  const navigate = useCallback(
+    (key: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value) params.set(key, value);
+      else params.delete(key);
+      router.push(`/expenses?${params.toString()}`);
+    },
+    [router, searchParams]
+  );
 
-  function clear() {
-    setStart("");
-    setEnd("");
-    setStatus("");
-    setWho("");
+  function reset() {
     router.push("/expenses");
   }
 
@@ -58,8 +47,8 @@ export function DateFilter({
         <input
           id="start-date"
           type="date"
-          value={start}
-          onChange={(e) => setStart(e.target.value)}
+          defaultValue={currentStart ?? ""}
+          onChange={(e) => navigate("start", e.target.value)}
           className="border border-gray-300 rounded px-3 py-1.5 text-sm"
         />
       </div>
@@ -70,8 +59,8 @@ export function DateFilter({
         <input
           id="end-date"
           type="date"
-          value={end}
-          onChange={(e) => setEnd(e.target.value)}
+          defaultValue={currentEnd ?? ""}
+          onChange={(e) => navigate("end", e.target.value)}
           className="border border-gray-300 rounded px-3 py-1.5 text-sm"
         />
       </div>
@@ -81,8 +70,8 @@ export function DateFilter({
         </label>
         <select
           id="status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          defaultValue={currentStatus ?? ""}
+          onChange={(e) => navigate("status", e.target.value)}
           className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white"
         >
           <option value="">All</option>
@@ -98,8 +87,8 @@ export function DateFilter({
         </label>
         <select
           id="who"
-          value={who}
-          onChange={(e) => setWho(e.target.value)}
+          defaultValue={currentWho ?? ""}
+          onChange={(e) => navigate("who", e.target.value)}
           className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white"
         >
           <option value="">All</option>
@@ -110,18 +99,12 @@ export function DateFilter({
           ))}
         </select>
       </div>
-      <button
-        onClick={apply}
-        className="bg-black text-white px-4 py-1.5 rounded text-sm hover:bg-gray-800"
-      >
-        Apply
-      </button>
       {hasFilters && (
         <button
-          onClick={clear}
-          className="text-sm text-gray-500 hover:text-gray-700 underline"
+          onClick={reset}
+          className="bg-gray-200 text-gray-700 px-4 py-1.5 rounded text-sm hover:bg-gray-300"
         >
-          Clear
+          Reset
         </button>
       )}
     </div>
