@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Expense } from "@/lib/types";
 
 function formatCurrency(amount: number | null): string {
@@ -35,6 +35,13 @@ const STATUS_LABELS: Record<Expense["status"], string> = {
   reimbursed: "Reimbursed",
 };
 
+const STATUS_ORDER: Record<Expense["status"], number> = {
+  pending: 0,
+  needs_review: 1,
+  approved: 2,
+  reimbursed: 3,
+};
+
 function StatusBadge({ status }: { status: Expense["status"] }) {
   return (
     <span
@@ -45,10 +52,71 @@ function StatusBadge({ status }: { status: Expense["status"] }) {
   );
 }
 
+type SortField = "date" | "sender_name" | "merchant" | "amount" | "category" | "status";
+type SortDir = "asc" | "desc";
+
+function SortArrow({
+  field,
+  activeField,
+  direction,
+}: {
+  field: SortField;
+  activeField: SortField | null;
+  direction: SortDir;
+}) {
+  const isActive = field === activeField;
+  return (
+    <span
+      className={`inline-block ml-1 text-[10px] transition-opacity ${
+        isActive ? "opacity-100 text-gray-800" : "opacity-0 group-hover:opacity-40 text-gray-400"
+      }`}
+    >
+      {isActive && direction === "desc" ? "▼" : "▲"}
+    </span>
+  );
+}
+
+function compareValues(a: Expense, b: Expense, field: SortField, dir: SortDir): number {
+  let cmp = 0;
+  switch (field) {
+    case "date":
+      cmp = (a.date ?? "").localeCompare(b.date ?? "");
+      break;
+    case "sender_name":
+      cmp = (a.sender_name ?? "").localeCompare(b.sender_name ?? "");
+      break;
+    case "merchant":
+      cmp = (a.merchant ?? "").localeCompare(b.merchant ?? "");
+      break;
+    case "amount":
+      cmp = (a.amount ?? 0) - (b.amount ?? 0);
+      break;
+    case "category":
+      cmp = (a.category ?? "").localeCompare(b.category ?? "");
+      break;
+    case "status":
+      cmp = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+      break;
+  }
+  return dir === "asc" ? cmp : -cmp;
+}
+
 export function ExpenseList({ expenses: initial }: { expenses: Expense[] }) {
   const [expenses, setExpenses] = useState(initial);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const sorted = useMemo(() => {
+    if (!sortField) return expenses;
+    return [...expenses].sort((a, b) => compareValues(a, b, sortField, sortDir));
+  }, [expenses, sortField, sortDir]);
+
+  const total = useMemo(
+    () => expenses.reduce((sum, e) => sum + (e.amount ?? 0), 0),
+    [expenses]
+  );
 
   if (expenses.length === 0) {
     return (
@@ -59,6 +127,15 @@ export function ExpenseList({ expenses: initial }: { expenses: Expense[] }) {
         </p>
       </div>
     );
+  }
+
+  function handleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
   }
 
   const allSelected =
@@ -163,17 +240,53 @@ export function ExpenseList({ expenses: initial }: { expenses: Expense[] }) {
                   className="rounded"
                 />
               </th>
-              <th className="pb-2 pr-4 font-medium">Date</th>
-              <th className="pb-2 pr-4 font-medium">Who</th>
-              <th className="pb-2 pr-4 font-medium">Merchant</th>
-              <th className="pb-2 pr-4 font-medium text-right">Amount</th>
-              <th className="pb-2 pr-4 font-medium">Category</th>
-              <th className="pb-2 pr-4 font-medium">Status</th>
+              <th
+                className="pb-2 pr-4 font-medium cursor-pointer select-none group"
+                onClick={() => handleSort("date")}
+              >
+                Date
+                <SortArrow field="date" activeField={sortField} direction={sortDir} />
+              </th>
+              <th
+                className="pb-2 pr-4 font-medium cursor-pointer select-none group"
+                onClick={() => handleSort("sender_name")}
+              >
+                Who
+                <SortArrow field="sender_name" activeField={sortField} direction={sortDir} />
+              </th>
+              <th
+                className="pb-2 pr-4 font-medium cursor-pointer select-none group"
+                onClick={() => handleSort("merchant")}
+              >
+                Merchant
+                <SortArrow field="merchant" activeField={sortField} direction={sortDir} />
+              </th>
+              <th
+                className="pb-2 pr-4 font-medium text-right cursor-pointer select-none group"
+                onClick={() => handleSort("amount")}
+              >
+                Amount
+                <SortArrow field="amount" activeField={sortField} direction={sortDir} />
+              </th>
+              <th
+                className="pb-2 pr-4 font-medium cursor-pointer select-none group"
+                onClick={() => handleSort("category")}
+              >
+                Category
+                <SortArrow field="category" activeField={sortField} direction={sortDir} />
+              </th>
+              <th
+                className="pb-2 pr-4 font-medium cursor-pointer select-none group"
+                onClick={() => handleSort("status")}
+              >
+                Status
+                <SortArrow field="status" activeField={sortField} direction={sortDir} />
+              </th>
               <th className="pb-2 font-medium">Receipt</th>
             </tr>
           </thead>
           <tbody>
-            {expenses.map((expense) => (
+            {sorted.map((expense) => (
               <tr
                 key={expense.id}
                 className={`border-b border-gray-100 hover:bg-gray-50 ${
@@ -222,6 +335,17 @@ export function ExpenseList({ expenses: initial }: { expenses: Expense[] }) {
               </tr>
             ))}
           </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-gray-300">
+              <td colSpan={4} className="py-3 pr-4 text-right font-semibold text-gray-600">
+                Total
+              </td>
+              <td className="py-3 pr-4 text-right tabular-nums font-semibold">
+                {formatCurrency(total)}
+              </td>
+              <td colSpan={3} />
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
