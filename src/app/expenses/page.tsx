@@ -9,10 +9,25 @@ export const dynamic = "force-dynamic";
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ start?: string; end?: string; status?: string }>;
+  searchParams: Promise<{ start?: string; end?: string; status?: string; who?: string }>;
 }) {
   const params = await searchParams;
   const supabase = createServiceClient();
+
+  // Fetch distinct sender names for the "Who" filter dropdown
+  const { data: senderRows } = await supabase
+    .from("expenses")
+    .select("sender_name")
+    .not("sender_name", "is", null)
+    .order("sender_name");
+
+  const senderNames = [
+    ...new Set(
+      (senderRows ?? [])
+        .map((r: { sender_name: string | null }) => r.sender_name)
+        .filter(Boolean) as string[]
+    ),
+  ];
 
   let query = supabase
     .from("expenses")
@@ -29,6 +44,9 @@ export default async function ExpensesPage({
   if (params.status) {
     query = query.eq("status", params.status);
   }
+  if (params.who) {
+    query = query.eq("sender_name", params.who);
+  }
 
   const { data: expenses } = await query;
 
@@ -40,6 +58,8 @@ export default async function ExpensesPage({
           currentStart={params.start}
           currentEnd={params.end}
           currentStatus={params.status}
+          currentWho={params.who}
+          senderNames={senderNames}
         />
       </Suspense>
       <ExpenseList expenses={(expenses as Expense[]) ?? []} />

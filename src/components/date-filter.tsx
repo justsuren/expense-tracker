@@ -7,16 +7,21 @@ export function DateFilter({
   currentStart,
   currentEnd,
   currentStatus,
+  currentWho,
+  senderNames,
 }: {
   currentStart?: string;
   currentEnd?: string;
   currentStatus?: string;
+  currentWho?: string;
+  senderNames: string[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [start, setStart] = useState(currentStart ?? "");
   const [end, setEnd] = useState(currentEnd ?? "");
   const [status, setStatus] = useState(currentStatus ?? "");
+  const [who, setWho] = useState(currentWho ?? "");
 
   function apply() {
     const params = new URLSearchParams(searchParams.toString());
@@ -26,6 +31,8 @@ export function DateFilter({
     else params.delete("end");
     if (status) params.set("status", status);
     else params.delete("status");
+    if (who) params.set("who", who);
+    else params.delete("who");
     router.push(`/expenses?${params.toString()}`);
   }
 
@@ -33,10 +40,11 @@ export function DateFilter({
     setStart("");
     setEnd("");
     setStatus("");
+    setWho("");
     router.push("/expenses");
   }
 
-  const hasFilters = currentStart || currentEnd || currentStatus;
+  const hasFilters = currentStart || currentEnd || currentStatus || currentWho;
 
   return (
     <div className="flex flex-wrap items-end gap-3 mb-6">
@@ -82,6 +90,24 @@ export function DateFilter({
           <option value="needs_review">Needs Review</option>
           <option value="approved">Approved</option>
           <option value="reimbursed">Reimbursed</option>
+        </select>
+      </div>
+      <div>
+        <label htmlFor="who" className="block text-sm text-gray-600 mb-1">
+          Who
+        </label>
+        <select
+          id="who"
+          value={who}
+          onChange={(e) => setWho(e.target.value)}
+          className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white"
+        >
+          <option value="">All</option>
+          {senderNames.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
         </select>
       </div>
       <button

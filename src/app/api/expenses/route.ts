@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
   const startDate = searchParams.get("start");
   const endDate = searchParams.get("end");
   const status = searchParams.get("status");
+  const who = searchParams.get("who");
   const limit = Math.min(Number(searchParams.get("limit") ?? 50), 100);
   const offset = Number(searchParams.get("offset") ?? 0);
 
@@ -25,6 +26,9 @@ export async function GET(request: NextRequest) {
   }
   if (status) {
     query = query.eq("status", status);
+  }
+  if (who) {
+    query = query.eq("sender_name", who);
   }
 
   const { data, error } = await query;
