@@ -50,6 +50,12 @@ export default async function ExpensesPage({
 
   const { data: expenses } = await query;
 
+  // Key forces React to remount ExpenseList when filters change,
+  // so client state (checkboxes, selections) resets with fresh data
+  const filterKey = [params.start, params.end, params.status, params.who]
+    .filter(Boolean)
+    .join("-") || "all";
+
   return (
     <main className="max-w-5xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Expenses</h1>
@@ -62,7 +68,7 @@ export default async function ExpensesPage({
           senderNames={senderNames}
         />
       </Suspense>
-      <ExpenseList expenses={(expenses as Expense[]) ?? []} />
+      <ExpenseList key={filterKey} expenses={(expenses as Expense[]) ?? []} />
     </main>
   );
 }
