@@ -6,6 +6,20 @@ import type { Expense } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+const STATUS_STYLES: Record<Expense["status"], string> = {
+  pending: "bg-yellow-100 text-yellow-800",
+  needs_review: "bg-red-100 text-red-800",
+  approved: "bg-green-100 text-green-800",
+  reimbursed: "bg-blue-100 text-blue-800",
+};
+
+const STATUS_LABELS: Record<Expense["status"], string> = {
+  pending: "Pending",
+  needs_review: "Needs Review",
+  approved: "Approved",
+  reimbursed: "Reimbursed",
+};
+
 export default async function ExpenseDetailPage({
   params,
 }: {
@@ -40,6 +54,11 @@ export default async function ExpenseDetailPage({
       day: "numeric",
       year: "numeric",
     });
+  };
+
+  const formatTimestamp = (ts: string | null) => {
+    if (!ts) return null;
+    return new Date(ts).toLocaleString("en-US");
   };
 
   return (
@@ -78,13 +97,9 @@ export default async function ExpenseDetailPage({
               <dt className="text-sm text-gray-500">Status</dt>
               <dd>
                 <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${
-                    expense.status === "pending"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-yellow-100 text-yellow-800"
-                  }`}
+                  className={`text-xs px-2 py-0.5 rounded-full ${STATUS_STYLES[expense.status]}`}
                 >
-                  {expense.status === "pending" ? "Pending" : "Needs Review"}
+                  {STATUS_LABELS[expense.status]}
                 </span>
               </dd>
             </div>
@@ -98,6 +113,18 @@ export default async function ExpenseDetailPage({
                 {new Date(expense.submitted_at).toLocaleString("en-US")}
               </dd>
             </div>
+            {expense.approved_at && (
+              <div>
+                <dt className="text-sm text-gray-500">Approved at</dt>
+                <dd>{formatTimestamp(expense.approved_at)}</dd>
+              </div>
+            )}
+            {expense.reimbursed_at && (
+              <div>
+                <dt className="text-sm text-gray-500">Reimbursed at</dt>
+                <dd>{formatTimestamp(expense.reimbursed_at)}</dd>
+              </div>
+            )}
           </dl>
         </div>
 

@@ -6,14 +6,17 @@ import { useState } from "react";
 export function DateFilter({
   currentStart,
   currentEnd,
+  currentStatus,
 }: {
   currentStart?: string;
   currentEnd?: string;
+  currentStatus?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [start, setStart] = useState(currentStart ?? "");
   const [end, setEnd] = useState(currentEnd ?? "");
+  const [status, setStatus] = useState(currentStatus ?? "");
 
   function apply() {
     const params = new URLSearchParams(searchParams.toString());
@@ -21,14 +24,19 @@ export function DateFilter({
     else params.delete("start");
     if (end) params.set("end", end);
     else params.delete("end");
+    if (status) params.set("status", status);
+    else params.delete("status");
     router.push(`/expenses?${params.toString()}`);
   }
 
   function clear() {
     setStart("");
     setEnd("");
+    setStatus("");
     router.push("/expenses");
   }
+
+  const hasFilters = currentStart || currentEnd || currentStatus;
 
   return (
     <div className="flex flex-wrap items-end gap-3 mb-6">
@@ -59,13 +67,30 @@ export function DateFilter({
           className="border border-gray-300 rounded px-3 py-1.5 text-sm"
         />
       </div>
+      <div>
+        <label htmlFor="status" className="block text-sm text-gray-600 mb-1">
+          Status
+        </label>
+        <select
+          id="status"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white"
+        >
+          <option value="">All</option>
+          <option value="pending">Pending</option>
+          <option value="needs_review">Needs Review</option>
+          <option value="approved">Approved</option>
+          <option value="reimbursed">Reimbursed</option>
+        </select>
+      </div>
       <button
         onClick={apply}
         className="bg-black text-white px-4 py-1.5 rounded text-sm hover:bg-gray-800"
       >
         Apply
       </button>
-      {(currentStart || currentEnd) && (
+      {hasFilters && (
         <button
           onClick={clear}
           className="text-sm text-gray-500 hover:text-gray-700 underline"

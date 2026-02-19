@@ -8,7 +8,7 @@ Return ONLY a JSON object with these fields:
   "date": "YYYY-MM-DD format, or null if not found",
   "merchant": "Store/business name, or null if not found",
   "amount": 123.45,
-  "category": "One of: meals, travel, office_supplies, software, entertainment, transportation, lodging, other",
+  "category": "One of: meals_entertainment, travel_airfare, travel_ground, lodging, office_supplies, software_subscriptions, professional_services, telecommunications, postage_shipping, printing_reproduction, equipment, conferences_training, dues_memberships, marketing_advertising, client_gifts, insurance, bank_fees, taxes_licenses, repairs_maintenance, utilities, rent, charitable_contributions, miscellaneous",
   "confidence": 0.95
 }
 
