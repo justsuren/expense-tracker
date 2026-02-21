@@ -1,47 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Expense } from "@/lib/types";
 import { CATEGORIES, CATEGORY_LABELS } from "@/lib/categories";
-
-function formatCurrency(amount: number | null): string {
-  if (amount == null) return "-";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount);
-}
-
-function formatDate(date: string | null): string {
-  if (!date) return "-";
-  return new Date(date + "T00:00:00").toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-const STATUS_STYLES: Record<Expense["status"], string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  needs_review: "bg-red-100 text-red-800",
-  approved: "bg-green-100 text-green-800",
-  reimbursed: "bg-blue-100 text-blue-800",
-};
-
-const STATUS_LABELS: Record<Expense["status"], string> = {
-  pending: "Pending",
-  needs_review: "Needs Review",
-  approved: "Approved",
-  reimbursed: "Reimbursed",
-};
-
-const STATUS_ORDER: Record<Expense["status"], number> = {
-  pending: 0,
-  needs_review: 1,
-  approved: 2,
-  reimbursed: 3,
-};
+import { formatCurrency, formatDate } from "@/lib/format";
+import { STATUS_STYLES, STATUS_LABELS, STATUS_ORDER } from "@/lib/status";
 
 function StatusBadge({ status }: { status: Expense["status"] }) {
   return (
@@ -78,26 +42,13 @@ function SortArrow({
 }
 
 function compareValues(a: Expense, b: Expense, field: SortField, dir: SortDir): number {
-  let cmp = 0;
-  switch (field) {
-    case "date":
-      cmp = (a.date ?? "").localeCompare(b.date ?? "");
-      break;
-    case "sender_name":
-      cmp = (a.sender_name ?? "").localeCompare(b.sender_name ?? "");
-      break;
-    case "merchant":
-      cmp = (a.merchant ?? "").localeCompare(b.merchant ?? "");
-      break;
-    case "amount":
-      cmp = (a.amount ?? 0) - (b.amount ?? 0);
-      break;
-    case "category":
-      cmp = (a.category ?? "").localeCompare(b.category ?? "");
-      break;
-    case "status":
-      cmp = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
-      break;
+  let cmp: number;
+  if (field === "amount") {
+    cmp = (a.amount ?? 0) - (b.amount ?? 0);
+  } else if (field === "status") {
+    cmp = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+  } else {
+    cmp = (a[field] ?? "").localeCompare(b[field] ?? "");
   }
   return dir === "asc" ? cmp : -cmp;
 }
@@ -150,11 +101,7 @@ export function ExpenseList({
     expenses.length > 0 && selected.size === expenses.length;
 
   function toggleAll() {
-    if (allSelected) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(expenses.map((e) => e.id)));
-    }
+    setSelected(allSelected ? new Set() : new Set(expenses.map((e) => e.id)));
   }
 
   function toggleOne(id: string) {
@@ -166,28 +113,22 @@ export function ExpenseList({
     });
   }
 
-  async function bulkUpdate(status: "approved" | "reimbursed") {
-    if (selected.size === 0) return;
+  async function patchExpenses(
+    ids: string[],
+    body: Record<string, unknown>,
+    onSuccess: (updated: Record<string, unknown>[]) => void
+  ) {
+    if (ids.length === 0) return;
     setLoading(true);
     try {
       const res = await fetch("/api/expenses", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selected), status }),
+        body: JSON.stringify({ ids, ...body }),
       });
       if (res.ok) {
         const { updated } = await res.json();
-        const updatedMap = new Map(
-          (updated as { id: string; status: Expense["status"] }[]).map((u) => [
-            u.id,
-            u.status,
-          ])
-        );
-        setExpenses((prev) =>
-          prev.map((e) =>
-            updatedMap.has(e.id) ? { ...e, status: updatedMap.get(e.id)! } : e
-          )
-        );
+        onSuccess(updated);
         setSelected(new Set());
       }
     } finally {
@@ -195,58 +136,36 @@ export function ExpenseList({
     }
   }
 
-  async function bulkArchive(archive: boolean) {
-    if (selected.size === 0) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/expenses", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ids: Array.from(selected),
-          action: archive ? "archive" : "unarchive",
-        }),
-      });
-      if (res.ok) {
-        setExpenses((prev) => prev.filter((e) => !selected.has(e.id)));
-        setSelected(new Set());
-      }
-    } finally {
-      setLoading(false);
-    }
+  const selectedIds = () => Array.from(selected);
+
+  function bulkUpdateStatus(status: "approved" | "reimbursed") {
+    patchExpenses(selectedIds(), { status }, (updated) => {
+      const map = new Map(updated.map((u) => [u.id as string, u.status as Expense["status"]]));
+      setExpenses((prev) =>
+        prev.map((e) => (map.has(e.id) ? { ...e, status: map.get(e.id)! } : e))
+      );
+    });
   }
 
-  async function updateCategory(ids: string[], category: string) {
-    if (ids.length === 0 || !category) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/expenses", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids, category }),
-      });
-      if (res.ok) {
-        const { updated } = await res.json();
-        const updatedMap = new Map(
-          (updated as { id: string; category: string }[]).map((u) => [
-            u.id,
-            u.category,
-          ])
-        );
-        setExpenses((prev) =>
-          prev.map((e) =>
-            updatedMap.has(e.id) ? { ...e, category: updatedMap.get(e.id)! } : e
-          )
-        );
-        setSelected(new Set());
-        setEditingCategoryId(null);
-      }
-    } finally {
-      setLoading(false);
-    }
+  function bulkArchive(archive: boolean) {
+    const ids = selectedIds();
+    patchExpenses(ids, { action: archive ? "archive" : "unarchive" }, () => {
+      const idSet = new Set(ids);
+      setExpenses((prev) => prev.filter((e) => !idSet.has(e.id)));
+    });
   }
 
-  // Determine which bulk actions are available based on selected expenses
+  function updateCategory(ids: string[], category: string) {
+    if (!ids.length || !category) return;
+    patchExpenses(ids, { category }, (updated) => {
+      const map = new Map(updated.map((u) => [u.id as string, u.category as string]));
+      setExpenses((prev) =>
+        prev.map((e) => (map.has(e.id) ? { ...e, category: map.get(e.id)! } : e))
+      );
+      setEditingCategoryId(null);
+    });
+  }
+
   const selectedExpenses = expenses.filter((e) => selected.has(e.id));
   const canApprove = selectedExpenses.some(
     (e) => e.status === "pending" || e.status === "needs_review"
@@ -262,7 +181,7 @@ export function ExpenseList({
           </span>
           {canApprove && (
             <button
-              onClick={() => bulkUpdate("approved")}
+              onClick={() => bulkUpdateStatus("approved")}
               disabled={loading}
               className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50"
             >
@@ -271,7 +190,7 @@ export function ExpenseList({
           )}
           {canReimburse && (
             <button
-              onClick={() => bulkUpdate("reimbursed")}
+              onClick={() => bulkUpdateStatus("reimbursed")}
               disabled={loading}
               className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
             >
@@ -321,48 +240,25 @@ export function ExpenseList({
                   className="rounded"
                 />
               </th>
-              <th
-                className="pb-2 pr-4 font-medium cursor-pointer select-none group"
-                onClick={() => handleSort("date")}
-              >
-                Date
-                <SortArrow field="date" activeField={sortField} direction={sortDir} />
-              </th>
-              <th
-                className="pb-2 pr-4 font-medium cursor-pointer select-none group"
-                onClick={() => handleSort("sender_name")}
-              >
-                Who
-                <SortArrow field="sender_name" activeField={sortField} direction={sortDir} />
-              </th>
-              <th
-                className="pb-2 pr-4 font-medium cursor-pointer select-none group"
-                onClick={() => handleSort("merchant")}
-              >
-                Merchant
-                <SortArrow field="merchant" activeField={sortField} direction={sortDir} />
-              </th>
-              <th
-                className="pb-2 pr-4 font-medium text-right cursor-pointer select-none group"
-                onClick={() => handleSort("amount")}
-              >
-                Amount
-                <SortArrow field="amount" activeField={sortField} direction={sortDir} />
-              </th>
-              <th
-                className="pb-2 pr-4 font-medium cursor-pointer select-none group"
-                onClick={() => handleSort("category")}
-              >
-                Category
-                <SortArrow field="category" activeField={sortField} direction={sortDir} />
-              </th>
-              <th
-                className="pb-2 pr-4 font-medium cursor-pointer select-none group"
-                onClick={() => handleSort("status")}
-              >
-                Status
-                <SortArrow field="status" activeField={sortField} direction={sortDir} />
-              </th>
+              {([
+                ["date", "Date"],
+                ["sender_name", "Who"],
+                ["merchant", "Merchant"],
+                ["amount", "Amount"],
+                ["category", "Category"],
+                ["status", "Status"],
+              ] as [SortField, string][]).map(([field, label]) => (
+                <th
+                  key={field}
+                  className={`pb-2 pr-4 font-medium cursor-pointer select-none group ${
+                    field === "amount" ? "text-right" : ""
+                  }`}
+                  onClick={() => handleSort(field)}
+                >
+                  {label}
+                  <SortArrow field={field} activeField={sortField} direction={sortDir} />
+                </th>
+              ))}
               <th className="pb-2 font-medium">Receipt</th>
             </tr>
           </thead>

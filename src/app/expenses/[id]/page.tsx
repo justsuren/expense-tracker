@@ -2,23 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase";
 import { ReceiptViewer } from "@/components/receipt-viewer";
+import { formatCurrency, formatDateLong, formatTimestamp } from "@/lib/format";
+import { STATUS_STYLES, STATUS_LABELS } from "@/lib/status";
 import type { Expense } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_STYLES: Record<Expense["status"], string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  needs_review: "bg-red-100 text-red-800",
-  approved: "bg-green-100 text-green-800",
-  reimbursed: "bg-blue-100 text-blue-800",
-};
-
-const STATUS_LABELS: Record<Expense["status"], string> = {
-  pending: "Pending",
-  needs_review: "Needs Review",
-  approved: "Approved",
-  reimbursed: "Reimbursed",
-};
 
 export default async function ExpenseDetailPage({
   params,
@@ -38,29 +26,6 @@ export default async function ExpenseDetailPage({
 
   const expense = data as Expense;
 
-  const formatCurrency = (amount: number | null) => {
-    if (amount == null) return "-";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
-  const formatDate = (date: string | null) => {
-    if (!date) return "-";
-    return new Date(date + "T00:00:00").toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
-  const formatTimestamp = (ts: string | null) => {
-    if (!ts) return null;
-    return new Date(ts).toLocaleString("en-US");
-  };
-
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
       <Link
@@ -79,7 +44,7 @@ export default async function ExpenseDetailPage({
           <dl className="space-y-3">
             <div>
               <dt className="text-sm text-gray-500">Date</dt>
-              <dd className="font-medium">{formatDate(expense.date)}</dd>
+              <dd className="font-medium">{formatDateLong(expense.date)}</dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Amount</dt>

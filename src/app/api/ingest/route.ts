@@ -25,8 +25,7 @@ async function sendTelegramMessage(chatId: number, text: string) {
 
 async function downloadTelegramFile(
   fileId: string
-): Promise<{ buffer: Buffer; mimeType: string } | null> {
-  // Get file path from Telegram
+): Promise<Buffer | null> {
   const fileRes = await fetch(`${TELEGRAM_API}/getFile?file_id=${fileId}`);
   const fileData = await fileRes.json();
 
@@ -34,31 +33,15 @@ async function downloadTelegramFile(
     return null;
   }
 
-  const filePath: string = fileData.result.file_path;
-
-  // Download the file
   const downloadRes = await fetch(
-    `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${filePath}`
+    `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${fileData.result.file_path}`
   );
 
   if (!downloadRes.ok) {
     return null;
   }
 
-  const arrayBuffer = await downloadRes.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  // Determine mime type from file extension
-  const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
-  const mimeMap: Record<string, string> = {
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    png: "image/png",
-    pdf: "application/pdf",
-  };
-  const mimeType = mimeMap[ext] ?? "image/jpeg";
-
-  return { buffer, mimeType };
+  return Buffer.from(await downloadRes.arrayBuffer());
 }
 
 export async function POST(request: Request) {
@@ -87,18 +70,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Get the file_id — for photos, use the largest resolution (last in array)
+    // Get the file_id and mime type — for photos, use the largest resolution (last in array)
     let fileId: string | null = null;
+    let mimeType = "image/jpeg";
 
     if (message.photo && message.photo.length > 0) {
       fileId = message.photo[message.photo.length - 1].file_id;
     } else if (message.document) {
       const mime = message.document.mime_type ?? "";
-      if (
-        mime.startsWith("image/") ||
-        mime === "application/pdf"
-      ) {
+      if (mime.startsWith("image/") || mime === "application/pdf") {
         fileId = message.document.file_id;
+        mimeType = mime;
       } else {
         await sendTelegramMessage(
           chatId,
@@ -114,9 +96,8 @@ export async function POST(request: Request) {
 
     await sendTelegramMessage(chatId, "Got it! Processing your receipt...");
 
-    // Download file from Telegram
-    const file = await downloadTelegramFile(fileId);
-    if (!file) {
+    const buffer = await downloadTelegramFile(fileId);
+    if (!buffer) {
       await sendTelegramMessage(
         chatId,
         "Sorry, I couldn't download that file. Please try again."
@@ -126,10 +107,9 @@ export async function POST(request: Request) {
 
     const supabase = createServiceClient();
 
-    // Parse first so we have merchant/date for the filename
-    const parsed = await parseReceipt(file.buffer, file.mimeType);
+    const parsed = await parseReceipt(buffer, mimeType);
 
-    const receiptUrl = await uploadReceipt(supabase, file.buffer, file.mimeType, {
+    const receiptUrl = await uploadReceipt(supabase, buffer, mimeType, {
       date: parsed.date,
       senderName: senderName,
       merchant: parsed.merchant,

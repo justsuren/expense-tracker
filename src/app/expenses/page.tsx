@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { createServiceClient } from "@/lib/supabase";
+import { buildExpenseQuery } from "@/lib/queries";
 import { ExpenseList } from "@/components/expense-list";
 import { DateFilter } from "@/components/date-filter";
 import type { Expense } from "@/lib/types";
@@ -29,31 +30,7 @@ export default async function ExpensesPage({
     ),
   ];
 
-  let query = supabase
-    .from("expenses")
-    .select("*")
-    .order("submitted_at", { ascending: false })
-    .limit(50);
-
-  if (params.start) {
-    query = query.gte("date", params.start);
-  }
-  if (params.end) {
-    query = query.lte("date", params.end);
-  }
-  if (params.status) {
-    query = query.eq("status", params.status);
-  }
-  if (params.who) {
-    query = query.eq("sender_name", params.who);
-  }
-
-  if (params.archived === "true") {
-    query = query.eq("archived", true);
-  } else {
-    query = query.eq("archived", false);
-  }
-
+  const { query } = buildExpenseQuery(supabase, params);
   const { data: expenses } = await query;
 
   // Key forces React to remount ExpenseList when filters change,

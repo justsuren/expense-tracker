@@ -1,43 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { CATEGORY_SET } from "@/lib/categories";
+import { buildExpenseQuery } from "@/lib/queries";
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const startDate = searchParams.get("start");
-  const endDate = searchParams.get("end");
-  const status = searchParams.get("status");
-  const who = searchParams.get("who");
-  const archived = searchParams.get("archived");
-  const limit = Math.min(Number(searchParams.get("limit") ?? 50), 100);
-  const offset = Number(searchParams.get("offset") ?? 0);
-
+  const sp = request.nextUrl.searchParams;
   const supabase = createServiceClient();
 
-  let query = supabase
-    .from("expenses")
-    .select("*")
-    .order("submitted_at", { ascending: false })
-    .range(offset, offset + limit - 1);
-
-  if (startDate) {
-    query = query.gte("date", startDate);
-  }
-  if (endDate) {
-    query = query.lte("date", endDate);
-  }
-  if (status) {
-    query = query.eq("status", status);
-  }
-  if (who) {
-    query = query.eq("sender_name", who);
-  }
-
-  if (archived === "true") {
-    query = query.eq("archived", true);
-  } else {
-    query = query.eq("archived", false);
-  }
+  const { query, pagination } = buildExpenseQuery(supabase, {
+    start: sp.get("start"),
+    end: sp.get("end"),
+    status: sp.get("status"),
+    who: sp.get("who"),
+    archived: sp.get("archived"),
+    limit: Number(sp.get("limit") ?? 50),
+    offset: Number(sp.get("offset") ?? 0),
+  });
 
   const { data, error } = await query;
 
@@ -45,7 +23,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ expenses: data, pagination: { limit, offset } });
+  return NextResponse.json({ expenses: data, pagination });
 }
 
 const VALID_STATUSES = new Set(["pending", "needs_review", "approved", "reimbursed"]);
@@ -100,7 +78,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ updated: data });
   }
 
-  // Existing status update logic
+  // Status update
   if (!status || !VALID_STATUSES.has(status)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }

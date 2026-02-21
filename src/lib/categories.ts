@@ -26,30 +26,8 @@ export const CATEGORIES = [
 
 export type Category = (typeof CATEGORIES)[number];
 
-export const CATEGORY_LABELS: Record<Category, string> = {
-  meals: "Meals",
-  travel_airfare: "Travel Airfare",
-  travel_ground: "Travel Ground",
-  lodging: "Lodging",
-  office_supplies: "Office Supplies",
-  software_subscriptions: "Software Subscriptions",
-  professional_services: "Professional Services",
-  telecommunications: "Telecommunications",
-  postage_shipping: "Postage Shipping",
-  printing_reproduction: "Printing Reproduction",
-  equipment: "Equipment",
-  conferences_training: "Conferences Training",
-  dues_memberships: "Dues Memberships",
-  marketing_advertising: "Marketing Advertising",
-  client_gifts: "Client Gifts",
-  insurance: "Insurance",
-  bank_fees: "Bank Fees",
-  taxes_licenses: "Taxes Licenses",
-  repairs_maintenance: "Repairs Maintenance",
-  utilities: "Utilities",
-  rent: "Rent",
-  charitable_contributions: "Charitable Contributions",
-  miscellaneous: "Miscellaneous",
-};
+export const CATEGORY_LABELS: Record<Category, string> = Object.fromEntries(
+  CATEGORIES.map((c) => [c, c.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())])
+) as Record<Category, string>;
 
 export const CATEGORY_SET = new Set<string>(CATEGORIES);
