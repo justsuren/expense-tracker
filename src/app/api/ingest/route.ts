@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    await sendTelegramMessage(chatId, "Got it! Processing your receipt...");
+    await sendTelegramMessage(chatId, "Got it! Processing your document...");
 
     const buffer = await downloadTelegramFile(fileId);
     if (!buffer) {
@@ -138,9 +138,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Send confirmation
-    const parts: string[] = ["Receipt logged!"];
-    if (parsed.merchant) parts.push(`Merchant: ${parsed.merchant}`);
+    // Send confirmation with document-type-aware labels
+    const isCheck = parsed.document_type === "check";
+    const docLabel = isCheck ? "Check" : "Receipt";
+    const parts: string[] = [`${docLabel} logged!`];
+    if (parsed.merchant) parts.push(`${isCheck ? "Payee" : "Merchant"}: ${parsed.merchant}`);
     if (parsed.amount != null) parts.push(`Amount: $${parsed.amount.toFixed(2)}`);
     if (parsed.date) parts.push(`Date: ${parsed.date}`);
     if (parsed.category) parts.push(`Category: ${parsed.category.replace(/_/g, " ")}`);
