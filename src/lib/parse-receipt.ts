@@ -73,14 +73,12 @@ export async function parseReceipt(
     console.log("AI response:", JSON.stringify(response.content));
 
     if (!textBlock || textBlock.type !== "text") {
-      console.error("No text block in AI response");
-      return fallbackResult();
+      throw new Error("No text block in AI response");
     }
 
     const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("No JSON found in AI response:", textBlock.text);
-      return fallbackResult();
+      throw new Error(`No JSON found in AI response: ${textBlock.text}`);
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
@@ -96,17 +94,8 @@ export async function parseReceipt(
     };
   } catch (error) {
     console.error("Receipt parsing error:", error);
-    return fallbackResult();
+    throw new Error(
+      `Failed to parse document: ${error instanceof Error ? error.message : "unknown error"}`
+    );
   }
-}
-
-function fallbackResult(): ParsedReceipt {
-  return {
-    document_type: "other",
-    date: null,
-    merchant: null,
-    amount: null,
-    category: null,
-    confidence: 0,
-  };
 }

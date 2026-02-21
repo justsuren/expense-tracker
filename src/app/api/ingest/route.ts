@@ -107,7 +107,17 @@ export async function POST(request: Request) {
 
     const supabase = createServiceClient();
 
-    const parsed = await parseReceipt(buffer, mimeType);
+    let parsed;
+    try {
+      parsed = await parseReceipt(buffer, mimeType);
+    } catch (parseError) {
+      console.error("Parse failed:", parseError);
+      await sendTelegramMessage(
+        chatId,
+        "Sorry, I couldn't read that document. Please try again with a clearer photo."
+      );
+      return NextResponse.json({ ok: true });
+    }
 
     const receiptUrl = await uploadReceipt(supabase, buffer, mimeType, {
       date: parsed.date,
