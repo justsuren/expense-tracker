@@ -1,4 +1,5 @@
 import { getAnthropicClient } from "@/lib/anthropic";
+import { CATEGORIES } from "@/lib/categories";
 import type { ParsedReceipt } from "@/lib/types";
 
 const RECEIPT_PARSING_PROMPT = `You are a receipt parsing assistant. Analyze this receipt image and extract the following information.
@@ -8,7 +9,7 @@ Return ONLY a JSON object with these fields:
   "date": "YYYY-MM-DD format, or null if not found",
   "merchant": "Store/business name, or null if not found",
   "amount": 123.45,
-  "category": "One of: meals_entertainment, travel_airfare, travel_ground, lodging, office_supplies, software_subscriptions, professional_services, telecommunications, postage_shipping, printing_reproduction, equipment, conferences_training, dues_memberships, marketing_advertising, client_gifts, insurance, bank_fees, taxes_licenses, repairs_maintenance, utilities, rent, charitable_contributions, miscellaneous",
+  "category": "One of: ${CATEGORIES.join(", ")}",
   "confidence": 0.95
 }
 
@@ -58,7 +59,7 @@ export async function parseReceipt(
           ];
 
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-sonnet-4-6-20250514",
       max_tokens: 1024,
       messages: [{ role: "user", content }],
     });

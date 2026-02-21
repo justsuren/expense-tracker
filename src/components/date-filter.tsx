@@ -8,12 +8,14 @@ export function DateFilter({
   currentEnd,
   currentStatus,
   currentWho,
+  currentArchived,
   senderNames,
 }: {
   currentStart?: string;
   currentEnd?: string;
   currentStatus?: string;
   currentWho?: string;
+  currentArchived?: string;
   senderNames: string[];
 }) {
   const router = useRouter();
@@ -33,7 +35,7 @@ export function DateFilter({
     router.push("/expenses");
   }
 
-  const hasFilters = currentStart || currentEnd || currentStatus || currentWho;
+  const hasFilters = currentStart || currentEnd || currentStatus || currentWho || currentArchived;
 
   return (
     <div className="flex flex-wrap items-end gap-3 mb-6">
@@ -98,6 +100,18 @@ export function DateFilter({
             </option>
           ))}
         </select>
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          id="archived"
+          type="checkbox"
+          checked={currentArchived === "true"}
+          onChange={(e) => navigate("archived", e.target.checked ? "true" : "")}
+          className="rounded"
+        />
+        <label htmlFor="archived" className="text-sm text-gray-600">
+          Show Archived
+        </label>
       </div>
       {hasFilters && (
         <button

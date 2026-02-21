@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Expense } from "@/lib/types";
+import { CATEGORIES, CATEGORY_LABELS } from "@/lib/categories";
 
 function formatCurrency(amount: number | null): string {
   if (amount == null) return "-";
@@ -101,12 +102,19 @@ function compareValues(a: Expense, b: Expense, field: SortField, dir: SortDir): 
   return dir === "asc" ? cmp : -cmp;
 }
 
-export function ExpenseList({ expenses: initial }: { expenses: Expense[] }) {
+export function ExpenseList({
+  expenses: initial,
+  archiveMode = false,
+}: {
+  expenses: Expense[];
+  archiveMode?: boolean;
+}) {
   const [expenses, setExpenses] = useState(initial);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
 
   const sorted = useMemo(() => {
     if (!sortField) return expenses;
@@ -187,6 +195,57 @@ export function ExpenseList({ expenses: initial }: { expenses: Expense[] }) {
     }
   }
 
+  async function bulkArchive(archive: boolean) {
+    if (selected.size === 0) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/expenses", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: Array.from(selected),
+          action: archive ? "archive" : "unarchive",
+        }),
+      });
+      if (res.ok) {
+        setExpenses((prev) => prev.filter((e) => !selected.has(e.id)));
+        setSelected(new Set());
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function updateCategory(ids: string[], category: string) {
+    if (ids.length === 0 || !category) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/expenses", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, category }),
+      });
+      if (res.ok) {
+        const { updated } = await res.json();
+        const updatedMap = new Map(
+          (updated as { id: string; category: string }[]).map((u) => [
+            u.id,
+            u.category,
+          ])
+        );
+        setExpenses((prev) =>
+          prev.map((e) =>
+            updatedMap.has(e.id) ? { ...e, category: updatedMap.get(e.id)! } : e
+          )
+        );
+        setSelected(new Set());
+        setEditingCategoryId(null);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // Determine which bulk actions are available based on selected expenses
   const selectedExpenses = expenses.filter((e) => selected.has(e.id));
   const canApprove = selectedExpenses.some(
@@ -219,6 +278,28 @@ export function ExpenseList({ expenses: initial }: { expenses: Expense[] }) {
               {loading ? "Updating..." : "Mark Reimbursed"}
             </button>
           )}
+          <select
+            value=""
+            onChange={(e) => updateCategory(Array.from(selected), e.target.value)}
+            disabled={loading}
+            className="border border-gray-300 rounded px-2 py-1 text-sm bg-white disabled:opacity-50"
+          >
+            <option value="" disabled>
+              Change Category...
+            </option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {CATEGORY_LABELS[cat]}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => bulkArchive(!archiveMode)}
+            disabled={loading}
+            className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 disabled:opacity-50"
+          >
+            {loading ? "Updating..." : archiveMode ? "Unarchive" : "Archive"}
+          </button>
           <button
             onClick={() => setSelected(new Set())}
             className="text-sm text-gray-500 hover:text-gray-700 ml-auto"
@@ -314,8 +395,36 @@ export function ExpenseList({ expenses: initial }: { expenses: Expense[] }) {
                 <td className="py-3 pr-4 text-right tabular-nums">
                   {formatCurrency(expense.amount)}
                 </td>
-                <td className="py-3 pr-4 capitalize">
-                  {expense.category?.replace(/_/g, " ") ?? "-"}
+                <td className="py-3 pr-4">
+                  {editingCategoryId === expense.id ? (
+                    <select
+                      autoFocus
+                      value={expense.category ?? ""}
+                      onChange={(e) => updateCategory([expense.id], e.target.value)}
+                      onBlur={() => setEditingCategoryId(null)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") setEditingCategoryId(null);
+                      }}
+                      className="border border-blue-400 rounded px-1 py-0.5 text-sm bg-white w-full"
+                    >
+                      <option value="" disabled>
+                        Select...
+                      </option>
+                      {CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {CATEGORY_LABELS[cat]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span
+                      onClick={() => setEditingCategoryId(expense.id)}
+                      className="capitalize cursor-pointer hover:text-blue-600 hover:underline"
+                      title="Click to change category"
+                    >
+                      {expense.category?.replace(/_/g, " ") ?? "-"}
+                    </span>
+                  )}
                 </td>
                 <td className="py-3 pr-4">
                   <StatusBadge status={expense.status} />

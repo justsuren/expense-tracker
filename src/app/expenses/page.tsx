@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ start?: string; end?: string; status?: string; who?: string }>;
+  searchParams: Promise<{ start?: string; end?: string; status?: string; who?: string; archived?: string }>;
 }) {
   const params = await searchParams;
   const supabase = createServiceClient();
@@ -48,11 +48,17 @@ export default async function ExpensesPage({
     query = query.eq("sender_name", params.who);
   }
 
+  if (params.archived === "true") {
+    query = query.eq("archived", true);
+  } else {
+    query = query.eq("archived", false);
+  }
+
   const { data: expenses } = await query;
 
   // Key forces React to remount ExpenseList when filters change,
   // so client state (checkboxes, selections) resets with fresh data
-  const filterKey = [params.start, params.end, params.status, params.who]
+  const filterKey = [params.start, params.end, params.status, params.who, params.archived]
     .filter(Boolean)
     .join("-") || "all";
 
@@ -65,10 +71,11 @@ export default async function ExpensesPage({
           currentEnd={params.end}
           currentStatus={params.status}
           currentWho={params.who}
+          currentArchived={params.archived}
           senderNames={senderNames}
         />
       </Suspense>
-      <ExpenseList key={filterKey} expenses={(expenses as Expense[]) ?? []} />
+      <ExpenseList key={filterKey} expenses={(expenses as Expense[]) ?? []} archiveMode={params.archived === "true"} />
     </main>
   );
 }

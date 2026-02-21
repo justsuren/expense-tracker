@@ -13,6 +13,8 @@ export interface Expense {
   approved_at: string | null;
   reimbursed_at: string | null;
   created_at: string;
+  archived: boolean;
+  archived_at: string | null;
 }
 
 export interface ParsedReceipt {
