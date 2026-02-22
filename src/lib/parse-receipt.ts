@@ -2,22 +2,27 @@ import { getAnthropicClient } from "@/lib/anthropic";
 import { CATEGORIES } from "@/lib/categories";
 import type { ParsedReceipt } from "@/lib/types";
 
-const RECEIPT_PARSING_PROMPT = `You are a receipt parsing assistant. Analyze this receipt image and extract the following information.
+const RECEIPT_PARSING_PROMPT = `You are an expense document parsing assistant. Analyze this image which may be a receipt, check, invoice, or other financial document.
+
+First, determine what type of document this is, then extract the relevant information.
 
 Return ONLY a JSON object with these fields:
 {
+  "document_type": "receipt | check | invoice | other",
   "date": "YYYY-MM-DD format, or null if not found",
-  "merchant": "Store/business name, or null if not found",
+  "merchant": "Store/business name OR payee/pay-to name for checks, or null if not found",
   "amount": 123.45,
   "category": "One of: ${CATEGORIES.join(", ")}",
   "confidence": 0.95
 }
 
 Rules:
-- Extract the TOTAL amount (after tax), not subtotal. Return as a number, or null if not found.
-- Use the transaction date, not the print date
-- For category, choose the most specific match from the list
-- Set confidence lower if the receipt is blurry, partially visible, or ambiguous
+- For receipts: extract the TOTAL amount (after tax), not subtotal. Use the transaction date, not the print date.
+- For checks: extract the check amount (numeric amount, not the written-out words). Use the payee ("Pay to the order of") as the merchant. Use the check date.
+- For invoices: extract the total due. Use the vendor as the merchant.
+- Return amount as a number, or null if not found.
+- For category, choose the most specific match from the list. For checks, infer from the payee name or memo line if available.
+- Set confidence lower if the document is blurry, partially visible, or ambiguous
 - If you cannot determine a field, set it to null and lower confidence accordingly
 - Return ONLY the JSON object, no other text`;
 
@@ -59,7 +64,7 @@ export async function parseReceipt(
           ];
 
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 1024,
       messages: [{ role: "user", content }],
     });
@@ -68,19 +73,19 @@ export async function parseReceipt(
     console.log("AI response:", JSON.stringify(response.content));
 
     if (!textBlock || textBlock.type !== "text") {
-      console.error("No text block in AI response");
-      return fallbackResult();
+      throw new Error("No text block in AI response");
     }
 
     const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("No JSON found in AI response:", textBlock.text);
-      return fallbackResult();
+      throw new Error(`No JSON found in AI response: ${textBlock.text}`);
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
-    console.log("Parsed receipt:", parsed);
+    console.log("Parsed document:", parsed);
+    const docType = parsed.document_type ?? "other";
     return {
+      document_type: ["receipt", "check", "invoice", "other"].includes(docType) ? docType : "other",
       date: parsed.date ?? null,
       merchant: parsed.merchant ?? null,
       amount: parsed.amount != null ? Number(parsed.amount) : null,
@@ -89,16 +94,8 @@ export async function parseReceipt(
     };
   } catch (error) {
     console.error("Receipt parsing error:", error);
-    return fallbackResult();
+    throw new Error(
+      `Failed to parse document: ${error instanceof Error ? error.message : "unknown error"}`
+    );
   }
-}
-
-function fallbackResult(): ParsedReceipt {
-  return {
-    date: null,
-    merchant: null,
-    amount: null,
-    category: null,
-    confidence: 0,
-  };
 }

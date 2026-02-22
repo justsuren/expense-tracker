@@ -17,7 +17,10 @@ export interface Expense {
   archived_at: string | null;
 }
 
+export type DocumentType = "receipt" | "check" | "invoice" | "other";
+
 export interface ParsedReceipt {
+  document_type: DocumentType;
   date: string | null;
   merchant: string | null;
   amount: number | null;
