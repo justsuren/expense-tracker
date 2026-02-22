@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ start?: string; end?: string; status?: string; who?: string; archived?: string }>;
+  searchParams: Promise<{ start?: string; end?: string; status?: string; who?: string; categories?: string; archived?: string }>;
 }) {
   const params = await searchParams;
   const supabase = createServiceClient();
@@ -35,7 +35,7 @@ export default async function ExpensesPage({
 
   // Key forces React to remount ExpenseList when filters change,
   // so client state (checkboxes, selections) resets with fresh data
-  const filterKey = [params.start, params.end, params.status, params.who, params.archived]
+  const filterKey = [params.start, params.end, params.status, params.who, params.categories, params.archived]
     .filter(Boolean)
     .join("-") || "all";
 
@@ -48,6 +48,7 @@ export default async function ExpensesPage({
           currentEnd={params.end}
           currentStatus={params.status}
           currentWho={params.who}
+          currentCategories={params.categories}
           currentArchived={params.archived}
           senderNames={senderNames}
         />

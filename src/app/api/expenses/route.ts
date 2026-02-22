@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     end: sp.get("end"),
     status: sp.get("status"),
     who: sp.get("who"),
+    categories: sp.get("categories"),
     archived: sp.get("archived"),
     limit: Number(sp.get("limit") ?? 50),
     offset: Number(sp.get("offset") ?? 0),

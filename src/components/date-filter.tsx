@@ -1,13 +1,15 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CATEGORIES, CATEGORY_LABELS } from "@/lib/categories";
 
 export function DateFilter({
   currentStart,
   currentEnd,
   currentStatus,
   currentWho,
+  currentCategories,
   currentArchived,
   senderNames,
 }: {
@@ -15,11 +17,16 @@ export function DateFilter({
   currentEnd?: string;
   currentStatus?: string;
   currentWho?: string;
+  currentCategories?: string;
   currentArchived?: string;
   senderNames: string[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [catOpen, setCatOpen] = useState(false);
+  const catRef = useRef<HTMLDivElement>(null);
+
+  const selectedCategories = currentCategories ? currentCategories.split(",").filter(Boolean) : [];
 
   const navigate = useCallback(
     (key: string, value: string) => {
@@ -31,11 +38,29 @@ export function DateFilter({
     [router, searchParams]
   );
 
+  function toggleCategory(cat: string) {
+    const next = selectedCategories.includes(cat)
+      ? selectedCategories.filter((c) => c !== cat)
+      : [...selectedCategories, cat];
+    navigate("categories", next.join(","));
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (catRef.current && !catRef.current.contains(e.target as Node)) {
+        setCatOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
   function reset() {
     router.push("/expenses");
   }
 
-  const hasFilters = currentStart || currentEnd || currentStatus || currentWho || currentArchived;
+  const hasFilters = currentStart || currentEnd || currentStatus || currentWho || currentCategories || currentArchived;
 
   return (
     <div className="flex flex-wrap items-end gap-3 mb-6">
@@ -100,6 +125,43 @@ export function DateFilter({
             </option>
           ))}
         </select>
+      </div>
+      <div className="relative" ref={catRef}>
+        <label className="block text-sm text-gray-600 mb-1">Category</label>
+        <button
+          type="button"
+          onClick={() => setCatOpen((o) => !o)}
+          className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-left min-w-[140px] flex items-center justify-between gap-2"
+        >
+          <span className="truncate">
+            {selectedCategories.length === 0
+              ? "All"
+              : selectedCategories.length === 1
+                ? CATEGORY_LABELS[selectedCategories[0] as keyof typeof CATEGORY_LABELS] ?? selectedCategories[0]
+                : `${selectedCategories.length} selected`}
+          </span>
+          <svg className="w-3 h-3 shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {catOpen && (
+          <div className="absolute z-20 mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-64 overflow-y-auto w-56">
+            {CATEGORIES.map((cat) => (
+              <label
+                key={cat}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedCategories.includes(cat)}
+                  onChange={() => toggleCategory(cat)}
+                  className="rounded"
+                />
+                {CATEGORY_LABELS[cat]}
+              </label>
+            ))}
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <input

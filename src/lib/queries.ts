@@ -5,6 +5,7 @@ export interface ExpenseFilters {
   end?: string | null;
   status?: string | null;
   who?: string | null;
+  categories?: string | null;
   archived?: string | null;
   limit?: number;
   offset?: number;
@@ -24,6 +25,10 @@ export function buildExpenseQuery(supabase: SupabaseClient, filters: ExpenseFilt
   if (filters.end) query = query.lte("date", filters.end);
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.who) query = query.eq("sender_name", filters.who);
+  if (filters.categories) {
+    const cats = filters.categories.split(",").filter(Boolean);
+    if (cats.length > 0) query = query.in("category", cats);
+  }
 
   if (filters.archived === "true") {
     query = query.eq("archived", true);
