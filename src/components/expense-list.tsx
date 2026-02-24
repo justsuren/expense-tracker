@@ -175,7 +175,7 @@ export function ExpenseList({
   return (
     <div>
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 mb-6 px-4 py-3 bg-accent text-accent-foreground">
+        <div className="flex items-center gap-3 mb-6 px-4 py-3 bg-muted border border-border text-foreground">
           <span className="text-sm font-medium">
             {selected.size} selected
           </span>
@@ -183,7 +183,7 @@ export function ExpenseList({
             <button
               onClick={() => bulkUpdateStatus("approved")}
               disabled={loading}
-              className="bg-accent-foreground text-accent px-3 py-1 text-sm font-medium hover:bg-accent-foreground/90 disabled:opacity-50 transition-colors"
+              className="bg-foreground text-background px-3 py-1 text-sm font-medium hover:bg-foreground/80 disabled:opacity-50 transition-colors"
             >
               {loading ? "Updating..." : "Approve"}
             </button>
@@ -192,7 +192,7 @@ export function ExpenseList({
             <button
               onClick={() => bulkUpdateStatus("reimbursed")}
               disabled={loading}
-              className="bg-accent-foreground text-accent px-3 py-1 text-sm font-medium hover:bg-accent-foreground/90 disabled:opacity-50 transition-colors"
+              className="bg-foreground text-background px-3 py-1 text-sm font-medium hover:bg-foreground/80 disabled:opacity-50 transition-colors"
             >
               {loading ? "Updating..." : "Mark Reimbursed"}
             </button>
@@ -201,7 +201,7 @@ export function ExpenseList({
             value=""
             onChange={(e) => updateCategory(Array.from(selected), e.target.value)}
             disabled={loading}
-            className="border border-accent-foreground/30 bg-transparent text-accent-foreground px-2 py-1 text-sm disabled:opacity-50"
+            className="border border-border bg-background text-foreground px-2 py-1 text-sm disabled:opacity-50"
           >
             <option value="" disabled>
               Change Category...
@@ -215,13 +215,13 @@ export function ExpenseList({
           <button
             onClick={() => bulkArchive(!archiveMode)}
             disabled={loading}
-            className="bg-accent-foreground text-accent px-3 py-1 text-sm font-medium hover:bg-accent-foreground/90 disabled:opacity-50 transition-colors"
+              className="bg-foreground text-background px-3 py-1 text-sm font-medium hover:bg-foreground/80 disabled:opacity-50 transition-colors"
           >
             {loading ? "Updating..." : archiveMode ? "Unarchive" : "Archive"}
           </button>
           <button
             onClick={() => setSelected(new Set())}
-            className="text-sm text-accent-foreground/70 hover:text-accent-foreground ml-auto transition-colors"
+            className="text-sm text-muted-foreground hover:text-foreground ml-auto transition-colors"
           >
             Clear
           </button>
@@ -340,10 +340,10 @@ export function ExpenseList({
           </tbody>
           <tfoot>
             <tr className="border-t-2 border-foreground">
-              <td colSpan={4} className="py-4 pr-4 text-right font-serif text-base font-semibold text-muted-foreground">
+              <td colSpan={4} className="py-4 pr-4 text-right text-sm font-semibold text-muted-foreground">
                 Total
               </td>
-              <td className="py-4 pr-4 text-right tabular-nums font-serif text-base font-bold">
+              <td className="py-4 pr-4 text-right tabular-nums text-sm font-bold">
                 {formatCurrency(total)}
               </td>
               <td colSpan={3} />

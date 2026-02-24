@@ -63,7 +63,7 @@ export function DateFilter({
   const hasFilters = currentStart || currentEnd || currentStatus || currentWho || currentCategories || currentArchived;
 
   const inputClasses =
-    "border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-accent focus:ring-0 focus:outline-none";
+    "border border-border/60 bg-transparent px-3 py-2 text-sm text-foreground focus:border-foreground/40 focus:ring-0 focus:outline-none";
   const labelClasses = "block text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1.5";
 
   return (
