@@ -10,7 +10,7 @@ import { STATUS_STYLES, STATUS_LABELS, STATUS_ORDER } from "@/lib/status";
 function StatusBadge({ status }: { status: Expense["status"] }) {
   return (
     <span
-      className={`text-xs px-2 py-0.5 rounded-full ${STATUS_STYLES[status]}`}
+      className={`text-xs px-2.5 py-1 font-medium ${STATUS_STYLES[status]}`}
     >
       {STATUS_LABELS[status]}
     </span>
@@ -33,10 +33,10 @@ function SortArrow({
   return (
     <span
       className={`inline-block ml-1 text-[10px] transition-opacity ${
-        isActive ? "opacity-100 text-gray-800" : "opacity-0 group-hover:opacity-40 text-gray-400"
+        isActive ? "opacity-100 text-foreground" : "opacity-0 group-hover:opacity-40 text-muted-foreground"
       }`}
     >
-      {isActive && direction === "desc" ? "▼" : "▲"}
+      {isActive && direction === "desc" ? "\u25BC" : "\u25B2"}
     </span>
   );
 }
@@ -79,8 +79,8 @@ export function ExpenseList({
 
   if (expenses.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        <p className="text-lg mb-2">No expenses found</p>
+      <div className="text-center py-20 text-muted-foreground">
+        <p className="font-serif text-2xl mb-3 text-foreground">No expenses found</p>
         <p className="text-sm">
           Send a receipt photo to the Telegram bot to get started
         </p>
@@ -175,15 +175,15 @@ export function ExpenseList({
   return (
     <div>
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <span className="text-sm text-gray-600">
+        <div className="flex items-center gap-3 mb-6 px-4 py-3 bg-muted border border-border text-foreground">
+          <span className="text-sm font-medium">
             {selected.size} selected
           </span>
           {canApprove && (
             <button
               onClick={() => bulkUpdateStatus("approved")}
               disabled={loading}
-              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50"
+              className="bg-foreground text-background px-3 py-1 text-sm font-medium hover:bg-foreground/80 disabled:opacity-50 transition-colors"
             >
               {loading ? "Updating..." : "Approve"}
             </button>
@@ -192,7 +192,7 @@ export function ExpenseList({
             <button
               onClick={() => bulkUpdateStatus("reimbursed")}
               disabled={loading}
-              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+              className="bg-foreground text-background px-3 py-1 text-sm font-medium hover:bg-foreground/80 disabled:opacity-50 transition-colors"
             >
               {loading ? "Updating..." : "Mark Reimbursed"}
             </button>
@@ -201,13 +201,13 @@ export function ExpenseList({
             value=""
             onChange={(e) => updateCategory(Array.from(selected), e.target.value)}
             disabled={loading}
-            className="border border-gray-300 rounded px-2 py-1 text-sm bg-white disabled:opacity-50"
+            className="border border-border bg-background text-foreground px-2 py-1 text-sm disabled:opacity-50"
           >
             <option value="" disabled>
               Change Category...
             </option>
             {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
+              <option key={cat} value={cat} className="text-foreground bg-background">
                 {CATEGORY_LABELS[cat]}
               </option>
             ))}
@@ -215,15 +215,15 @@ export function ExpenseList({
           <button
             onClick={() => bulkArchive(!archiveMode)}
             disabled={loading}
-            className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 disabled:opacity-50"
+              className="bg-foreground text-background px-3 py-1 text-sm font-medium hover:bg-foreground/80 disabled:opacity-50 transition-colors"
           >
             {loading ? "Updating..." : archiveMode ? "Unarchive" : "Archive"}
           </button>
           <button
             onClick={() => setSelected(new Set())}
-            className="text-sm text-gray-500 hover:text-gray-700 ml-auto"
+            className="text-sm text-muted-foreground hover:text-foreground ml-auto transition-colors"
           >
-            Clear selection
+            Clear
           </button>
         </div>
       )}
@@ -231,13 +231,12 @@ export function ExpenseList({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-gray-600">
-              <th className="pb-2 pr-2 w-8">
+            <tr className="border-b-2 border-foreground text-left">
+              <th className="pb-3 pr-2 w-8">
                 <input
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleAll}
-                  className="rounded"
                 />
               </th>
               {([
@@ -250,7 +249,7 @@ export function ExpenseList({
               ] as [SortField, string][]).map(([field, label]) => (
                 <th
                   key={field}
-                  className={`pb-2 pr-4 font-medium cursor-pointer select-none group ${
+                  className={`pb-3 pr-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer select-none group ${
                     field === "amount" ? "text-right" : ""
                   }`}
                   onClick={() => handleSort(field)}
@@ -259,39 +258,38 @@ export function ExpenseList({
                   <SortArrow field={field} activeField={sortField} direction={sortDir} />
                 </th>
               ))}
-              <th className="pb-2 font-medium">Receipt</th>
+              <th className="pb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Receipt</th>
             </tr>
           </thead>
           <tbody>
             {sorted.map((expense) => (
               <tr
                 key={expense.id}
-                className={`border-b border-gray-100 hover:bg-gray-50 ${
-                  selected.has(expense.id) ? "bg-blue-50" : ""
+                className={`border-b border-border hover:bg-muted transition-colors ${
+                  selected.has(expense.id) ? "bg-muted" : ""
                 }`}
               >
-                <td className="py-3 pr-2">
+                <td className="py-3.5 pr-2">
                   <input
                     type="checkbox"
                     checked={selected.has(expense.id)}
                     onChange={() => toggleOne(expense.id)}
-                    className="rounded"
                   />
                 </td>
-                <td className="py-3 pr-4">{formatDate(expense.date)}</td>
-                <td className="py-3 pr-4">{expense.sender_name ?? "-"}</td>
-                <td className="py-3 pr-4 font-medium">
+                <td className="py-3.5 pr-4 text-muted-foreground">{formatDate(expense.date)}</td>
+                <td className="py-3.5 pr-4">{expense.sender_name ?? "-"}</td>
+                <td className="py-3.5 pr-4 font-medium">
                   <Link
                     href={`/expenses/${expense.id}`}
-                    className="hover:underline"
+                    className="hover:underline text-foreground"
                   >
                     {expense.merchant ?? "Unknown"}
                   </Link>
                 </td>
-                <td className="py-3 pr-4 text-right tabular-nums">
+                <td className="py-3.5 pr-4 text-right tabular-nums font-medium">
                   {formatCurrency(expense.amount)}
                 </td>
-                <td className="py-3 pr-4">
+                <td className="py-3.5 pr-4">
                   {editingCategoryId === expense.id ? (
                     <select
                       autoFocus
@@ -301,7 +299,7 @@ export function ExpenseList({
                       onKeyDown={(e) => {
                         if (e.key === "Escape") setEditingCategoryId(null);
                       }}
-                      className="border border-blue-400 rounded px-1 py-0.5 text-sm bg-white w-full"
+                      className="border border-accent px-1 py-0.5 text-sm bg-background w-full"
                     >
                       <option value="" disabled>
                         Select...
@@ -315,37 +313,37 @@ export function ExpenseList({
                   ) : (
                     <span
                       onClick={() => setEditingCategoryId(expense.id)}
-                      className="capitalize cursor-pointer hover:text-blue-600 hover:underline"
+                      className="capitalize cursor-pointer hover:text-muted-foreground hover:underline transition-colors"
                       title="Click to change category"
                     >
                       {expense.category?.replace(/_/g, " ") ?? "-"}
                     </span>
                   )}
                 </td>
-                <td className="py-3 pr-4">
+                <td className="py-3.5 pr-4">
                   <StatusBadge status={expense.status} />
                 </td>
-                <td className="py-3">
+                <td className="py-3.5">
                   {expense.receipt_url ? (
                     <Link
                       href={`/expenses/${expense.id}`}
-                      className="text-blue-600 hover:underline text-xs"
+                      className="text-foreground underline hover:text-muted-foreground text-xs font-medium transition-colors"
                     >
                       View
                     </Link>
                   ) : (
-                    <span className="text-gray-400 text-xs">-</span>
+                    <span className="text-muted-foreground text-xs">-</span>
                   )}
                 </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr className="border-t-2 border-gray-300">
-              <td colSpan={4} className="py-3 pr-4 text-right font-semibold text-gray-600">
+            <tr className="border-t-2 border-foreground">
+              <td colSpan={4} className="py-4 pr-4 text-right text-sm font-semibold text-muted-foreground">
                 Total
               </td>
-              <td className="py-3 pr-4 text-right tabular-nums font-semibold">
+              <td className="py-4 pr-4 text-right tabular-nums text-sm font-bold">
                 {formatCurrency(total)}
               </td>
               <td colSpan={3} />

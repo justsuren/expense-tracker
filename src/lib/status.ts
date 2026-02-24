@@ -1,10 +1,10 @@
 import type { Expense } from "@/lib/types";
 
 export const STATUS_STYLES: Record<Expense["status"], string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  needs_review: "bg-red-100 text-red-800",
-  approved: "bg-green-100 text-green-800",
-  reimbursed: "bg-blue-100 text-blue-800",
+  pending: "bg-muted text-foreground border border-border",
+  needs_review: "bg-blue-50 text-blue-700 border border-blue-200",
+  approved: "bg-green-50 text-green-800 border border-green-200",
+  reimbursed: "text-muted-foreground",
 };
 
 export const STATUS_LABELS: Record<Expense["status"], string> = {

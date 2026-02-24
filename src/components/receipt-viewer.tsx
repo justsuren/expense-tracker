@@ -7,7 +7,7 @@ export function ReceiptViewer({ url }: { url: string }) {
     return (
       <iframe
         src={url}
-        className="w-full h-[600px] border border-gray-200 rounded"
+        className="w-full h-[600px] border border-border"
         title="Receipt PDF"
       />
     );
@@ -18,7 +18,7 @@ export function ReceiptViewer({ url }: { url: string }) {
     <img
       src={url}
       alt="Receipt"
-      className="max-w-full rounded border border-gray-200"
+      className="max-w-full border border-border"
     />
   );
 }
