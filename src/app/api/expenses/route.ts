@@ -119,15 +119,20 @@ export async function PATCH(request: NextRequest) {
     // Send a message to each chat (fire-and-forget)
     const notifications = Array.from(byChatId.entries()).map(
       async ([chatId, expenses]) => {
-        const lines = expenses.map(
-          (e) =>
-            `* ${formatCurrency(e.amount)} as of ${formatDate(e.date)} at ${e.merchant ?? "Unknown"}`
-        );
-        const outstanding = await getOutstandingSummary(chatId);
-        const text = `The following expenses were ${label}:\n${lines.join("\n")}${outstanding}`;
-        return sendTelegramMessage(chatId, text).catch((err) =>
-          console.error(`Failed to notify chat ${chatId}:`, err)
-        );
+        try {
+          const lines = expenses.map(
+            (e) =>
+              `* ${formatCurrency(e.amount)} as of ${formatDate(e.date)} at ${e.merchant ?? "Unknown"}`
+          );
+          const text = `The following expenses were ${label}:\n${lines.join("\n")}`;
+          await sendTelegramMessage(chatId, text);
+          const outstanding = await getOutstandingSummary(chatId);
+          if (outstanding) {
+            await sendTelegramMessage(chatId, outstanding, "MarkdownV2");
+          }
+        } catch (err) {
+          console.error(`Failed to notify chat ${chatId}:`, err);
+        }
       }
     );
     await Promise.all(notifications);

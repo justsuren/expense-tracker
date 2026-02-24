@@ -9,11 +9,17 @@ const STATUS_LABELS: Record<string, string> = {
   approved: "Approved",
 };
 
-export async function sendTelegramMessage(chatId: number, text: string) {
+export async function sendTelegramMessage(
+  chatId: number,
+  text: string,
+  parseMode?: "MarkdownV2"
+) {
+  const body: Record<string, unknown> = { chat_id: chatId, text };
+  if (parseMode) body.parse_mode = parseMode;
   await fetch(`${TELEGRAM_API}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text }),
+    body: JSON.stringify(body),
   });
 }
 
@@ -73,10 +79,10 @@ export async function getOutstandingSummary(chatId: number): Promise<string> {
     (c) => `${pad(c.amount, w1)} | ${pad(c.date, w2)} | ${c.status}`
   );
 
-  let summary = `\nOutstanding expenses:\n${headerRow}\n${rows.join("\n")}`;
+  let table = `${headerRow}\n${rows.join("\n")}`;
   if (data.length > MAX_OUTSTANDING_ROWS) {
-    summary += `\n...and ${data.length - MAX_OUTSTANDING_ROWS} more`;
+    table += `\n...and ${data.length - MAX_OUTSTANDING_ROWS} more`;
   }
 
-  return summary;
+  return `Outstanding expenses:\n\`\`\`\n${table}\n\`\`\``;
 }

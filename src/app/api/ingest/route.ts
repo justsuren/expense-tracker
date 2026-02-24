@@ -130,8 +130,11 @@ export async function POST(request: Request) {
       parts.push("\nSome fields couldn't be read clearly — marked for review.");
     }
 
+    await sendTelegramMessage(chatId, parts.join("\n"));
     const outstanding = await getOutstandingSummary(chatId);
-    await sendTelegramMessage(chatId, parts.join("\n") + outstanding);
+    if (outstanding) {
+      await sendTelegramMessage(chatId, outstanding, "MarkdownV2");
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
