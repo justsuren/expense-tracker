@@ -40,8 +40,11 @@ export default async function ExpensesPage({
     .join("-") || "all";
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Expenses</h1>
+    <main className="max-w-6xl mx-auto px-6 py-10">
+      <div className="mb-8">
+        <h1 className="font-serif text-4xl font-bold tracking-tight text-foreground">Expenses</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Track and manage your submitted expenses</p>
+      </div>
       <Suspense>
         <DateFilter
           currentStart={params.start}
