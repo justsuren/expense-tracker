@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { parseReceipt } from "@/lib/parse-receipt";
 import { uploadReceipt } from "@/lib/storage";
-
-const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
+import { sendTelegramMessage, downloadTelegramFile, getOutstandingSummary } from "@/lib/telegram";
 
 interface TelegramUpdate {
   message?: {
@@ -13,35 +12,6 @@ interface TelegramUpdate {
     document?: { file_id: string; mime_type?: string; file_name?: string };
     text?: string;
   };
-}
-
-async function sendTelegramMessage(chatId: number, text: string) {
-  await fetch(`${TELEGRAM_API}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text }),
-  });
-}
-
-async function downloadTelegramFile(
-  fileId: string
-): Promise<Buffer | null> {
-  const fileRes = await fetch(`${TELEGRAM_API}/getFile?file_id=${fileId}`);
-  const fileData = await fileRes.json();
-
-  if (!fileData.ok || !fileData.result?.file_path) {
-    return null;
-  }
-
-  const downloadRes = await fetch(
-    `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${fileData.result.file_path}`
-  );
-
-  if (!downloadRes.ok) {
-    return null;
-  }
-
-  return Buffer.from(await downloadRes.arrayBuffer());
 }
 
 export async function POST(request: Request) {
@@ -160,7 +130,8 @@ export async function POST(request: Request) {
       parts.push("\nSome fields couldn't be read clearly — marked for review.");
     }
 
-    await sendTelegramMessage(chatId, parts.join("\n"));
+    const outstanding = await getOutstandingSummary(chatId);
+    await sendTelegramMessage(chatId, parts.join("\n") + outstanding);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

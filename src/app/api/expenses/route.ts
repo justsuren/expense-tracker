@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { CATEGORY_SET } from "@/lib/categories";
 import { buildExpenseQuery } from "@/lib/queries";
+import { sendTelegramMessage, getOutstandingSummary } from "@/lib/telegram";
+import { formatCurrency, formatDate } from "@/lib/format";
 
 export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
@@ -95,10 +97,40 @@ export async function PATCH(request: NextRequest) {
     .from("expenses")
     .update(updateData)
     .in("id", ids)
-    .select("id, status");
+    .select("id, status, amount, date, merchant, telegram_chat_id");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Send Telegram notifications for approved/reimbursed status changes
+  if (status === "approved" || status === "reimbursed") {
+    const label = status === "approved" ? "approved" : "reimbursed";
+
+    // Group expenses by telegram_chat_id
+    const byChatId = new Map<number, typeof data>();
+    for (const expense of data ?? []) {
+      if (!expense.telegram_chat_id) continue;
+      const chatId = expense.telegram_chat_id as number;
+      if (!byChatId.has(chatId)) byChatId.set(chatId, []);
+      byChatId.get(chatId)!.push(expense);
+    }
+
+    // Send a message to each chat (fire-and-forget)
+    const notifications = Array.from(byChatId.entries()).map(
+      async ([chatId, expenses]) => {
+        const lines = expenses.map(
+          (e) =>
+            `* ${formatCurrency(e.amount)} as of ${formatDate(e.date)} at ${e.merchant ?? "Unknown"}`
+        );
+        const outstanding = await getOutstandingSummary(chatId);
+        const text = `The following expenses were ${label}:\n${lines.join("\n")}${outstanding}`;
+        return sendTelegramMessage(chatId, text).catch((err) =>
+          console.error(`Failed to notify chat ${chatId}:`, err)
+        );
+      }
+    );
+    await Promise.all(notifications);
   }
 
   return NextResponse.json({ updated: data });
