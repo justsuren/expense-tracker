@@ -70,7 +70,10 @@ export async function getOutstandingSummary(chatId: number): Promise<string> {
     status: STATUS_LABELS[e.status] ?? e.status,
   }));
 
-  const w1 = Math.max("Amount".length, ...cols.map((c) => c.amount.length));
+  const total = data.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const totalStr = formatCurrency(total);
+
+  const w1 = Math.max("Amount".length, "Total".length, totalStr.length, ...cols.map((c) => c.amount.length));
   const w2 = Math.max("Submitted".length, ...cols.map((c) => c.date.length));
   const w3 = Math.max("Status".length, ...cols.map((c) => c.status.length));
 
@@ -83,6 +86,8 @@ export async function getOutstandingSummary(chatId: number): Promise<string> {
   if (data.length > MAX_OUTSTANDING_ROWS) {
     table += `\n...and ${data.length - MAX_OUTSTANDING_ROWS} more`;
   }
+  const separator = "-".repeat(w1);
+  table += `\n${separator}\n${pad("Total", w1)} | ${totalStr}`;
 
   return `Outstanding expenses:\n\`\`\`\n${table}\n\`\`\``;
 }
